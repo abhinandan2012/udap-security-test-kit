@@ -9,7 +9,6 @@ group :development, :test do
   gem 'database_cleaner-sequel', '~> 1.8'
   gem 'factory_bot', '~> 6.1'
   gem 'rack-test', '~> 1.1.0'
-  gem 'roo', '~> 2.10.1'
   gem 'rspec', '~> 3.10'
   gem 'rubocop'
   gem 'rubocop-rspec', require: false

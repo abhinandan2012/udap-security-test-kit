@@ -385,7 +385,6 @@ DEPENDENCIES
   debug
   factory_bot (~> 6.1)
   rack-test (~> 1.1.0)
-  roo (~> 2.10.1)
   rspec (~> 3.10)
   rubocop
   rubocop-rspec
