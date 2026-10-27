@@ -13,6 +13,16 @@ module UDAPSecurityTestKit
         MockUDAPServer.issued_token_to_client_id(request.params[:token])
       end
 
+      def test_run_identifier_location_description
+        "the 'token' parameter"
+      end
+
+      # Return an OAuth 2.0 error response as JSON when the request cannot be
+      # matched to a waiting test session.
+      def no_session_response
+        MockUDAPServer.update_response_for_error(response, no_session_message, status: 400, error: 'invalid_request')
+      end
+
       def make_response
         response.body = make_udap_introspection_response.to_json
         response.headers['Cache-Control'] = 'no-store'

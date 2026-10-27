@@ -114,22 +114,24 @@ RSpec.describe UDAPSecurityTestKit::UDAPClientRegistrationInteraction, :request 
       expect(last_response.status).to eq(201)
     end
 
-    it 'returns 500 for the wrong client uri' do
+    it 'returns a 400 JSON error for the wrong client uri' do
       inputs = { udap_client_uri: udap_client_uri }
       result = run(test, inputs)
       expect(result.result).to eq('wait')
 
       post_json(reg_url, reg_request_body_wrong_client_uri)
-      expect(last_response.status).to eq(500)
+      expect(last_response.status).to eq(400)
+      expect(JSON.parse(last_response.body)['error']).to eq('invalid_software_statement')
     end
 
-    it 'returns 500 when no software statement' do
+    it 'returns a 400 JSON error when no software statement' do
       inputs = { udap_client_uri: udap_client_uri }
       result = run(test, inputs)
       expect(result.result).to eq('wait')
 
       post_json(reg_url, reg_request_body_no_ss)
-      expect(last_response.status).to eq(500)
+      expect(last_response.status).to eq(400)
+      expect(JSON.parse(last_response.body)['error']).to eq('invalid_software_statement')
     end
   end
 end

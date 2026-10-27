@@ -10,8 +10,24 @@ module UDAPSecurityTestKit
       include UDAPRegistrationResponseCreation
 
       def test_run_identifier
-        MockUDAPServer.client_uri_to_client_id(
-          MockUDAPServer.udap_client_uri_from_registration_payload(MockUDAPServer.parsed_io_body(request))
+        parsed_body = MockUDAPServer.parsed_io_body(request)
+        client_uri = MockUDAPServer.udap_client_uri_from_registration_payload(parsed_body)
+        return if client_uri.blank?
+
+        MockUDAPServer.client_uri_to_client_id(client_uri)
+      rescue JWT::DecodeError
+        nil # a software statement that is not a decodable JWT cannot identify a session
+      end
+
+      def test_run_identifier_location_description
+        "the 'iss' claim of the 'software_statement' JWT (base64url-encoded to form the client id)"
+      end
+
+      # Return a UDAP / RFC 7591 registration error response as JSON when the
+      # request cannot be matched to a waiting test session.
+      def no_session_response
+        MockUDAPServer.update_response_for_error(
+          response, no_session_message, status: 400, error: 'invalid_software_statement'
         )
       end
 

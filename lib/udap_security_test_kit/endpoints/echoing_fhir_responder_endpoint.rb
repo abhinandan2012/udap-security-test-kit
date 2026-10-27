@@ -6,8 +6,16 @@ require_relative 'mock_udap_server'
 
 module UDAPSecurityTestKit
   class EchoingFHIRResponderEndpoint < Inferno::DSL::SuiteEndpoint
+    # Respond with a FHIR OperationOutcome (application/fhir+json) when no
+    # waiting test session can be found for a request or an error occurs.
+    error_response_format :operation_outcome
+
     def test_run_identifier
       MockUDAPServer.issued_token_to_client_id(request.headers['authorization']&.delete_prefix('Bearer '))
+    end
+
+    def test_run_identifier_location_description
+      "the bearer token in the 'Authorization' header"
     end
 
     def make_response

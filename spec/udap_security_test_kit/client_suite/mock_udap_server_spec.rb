@@ -402,7 +402,7 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer, :request, :runnable do # rub
         expect(last_response.headers['Location']).to_not be_nil
       end
 
-      it 'returns 500 when no client id' do
+      it 'returns a 400 JSON error when no client id' do
         inputs = { client_id: udap_client_id }
         result = run(test, inputs)
         expect(result.result).to eq('wait')
@@ -410,7 +410,8 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer, :request, :runnable do # rub
         body_missing_client_id = URI.encode_www_form([['response_type', 'code'],
                                                       ['redirect_uri', redirect_uri]])
         post authorization_url, body_missing_client_id, 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'
-        expect(last_response.status).to eq(500)
+        expect(last_response.status).to eq(400)
+        expect(JSON.parse(last_response.body)['error']).to eq('invalid_request')
       end
 
       it 'returns 401 when no redirect_uri and no registered default' do
@@ -426,13 +427,14 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer, :request, :runnable do # rub
     end
 
     describe 'when generating token responses for UDAP' do
-      it 'returns 500 when a bad code is provided' do
+      it 'returns a 400 JSON error when a bad code is provided' do
         inputs = { client_id: udap_client_id }
         result = run(test, inputs)
         expect(result.result).to eq('wait')
 
         post_json(token_url, udap_ac_token_request_body_bad_code)
-        expect(last_response.status).to eq(500)
+        expect(last_response.status).to eq(400)
+        expect(JSON.parse(last_response.body)['error']).to eq('invalid_grant')
       end
 
       it 'returns 401 when a bad signature is provided' do
@@ -526,14 +528,15 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer, :request, :runnable do # rub
     end
 
     describe 'when responding to introspection requests' do
-      it 'returns 500 for an invalid token' do
+      it 'returns a 400 JSON error for an invalid token' do
         inputs = { client_id: udap_client_id }
         result = run(test, inputs)
         expect(result.result).to eq('wait')
 
         body = URI.encode_www_form([['token', 'code']])
         post introspection_url, body, 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'
-        expect(last_response.status).to eq(500)
+        expect(last_response.status).to eq(400)
+        expect(JSON.parse(last_response.body)['error']).to eq('invalid_request')
       end
 
       it 'returns false for a token never issued' do

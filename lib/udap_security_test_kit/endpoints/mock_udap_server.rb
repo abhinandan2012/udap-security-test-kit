@@ -276,10 +276,10 @@ module UDAPSecurityTestKit
       parsed_body&.dig('software_statement')
     end
 
-    def update_response_for_error(response, error_message)
-      response.status = 401
+    def update_response_for_error(response, error_message, status: 401, error: 'invalid_client')
+      response.status = status
       response.format = :json
-      response.body = { error: 'invalid_client', error_description: error_message }.to_json
+      response.body = { error:, error_description: error_message }.to_json
     end
 
     def client_id_from_client_assertion(client_assertion_jwt)
