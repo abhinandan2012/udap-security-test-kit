@@ -15,8 +15,8 @@ module UDAPSecurityTestKit
         return if client_uri.blank?
 
         MockUDAPServer.client_uri_to_client_id(client_uri)
-      rescue JWT::DecodeError
-        nil # a software statement that is not a decodable JWT cannot identify a session
+      rescue StandardError
+        nil # a body or software statement that cannot be read as a registration payload cannot identify a session
       end
 
       def test_run_identifier_location_description

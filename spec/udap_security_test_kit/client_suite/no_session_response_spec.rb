@@ -14,10 +14,14 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer::RegistrationEndpoint, :reque
     UDAPSecurityTestKit::UDAPJWTBuilder.encode_jwt_with_x5c_header(claims, leaf_key, 'RS256', [leaf_cert])
   end
 
-  # Asserts an OAuth-style JSON error body and returns its error_description
+  # Asserts an OAuth-style JSON error body carrying the simulated server's standard
+  # headers, and returns its error_description
   def expect_json_error(status, error)
     expect(last_response.status).to eq(status)
     expect(last_response.headers['Content-Type']).to include('application/json')
+    expect(last_response.headers['Cache-Control']).to eq('no-store')
+    expect(last_response.headers['Pragma']).to eq('no-cache')
+    expect(last_response.headers['Access-Control-Allow-Origin']).to eq('*')
 
     body = JSON.parse(last_response.body)
     expect(body['error']).to eq(error)
@@ -47,6 +51,21 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer::RegistrationEndpoint, :reque
 
     it 'returns a 400 invalid_software_statement JSON error when the software statement is not a JWT' do
       post_json(client_registration_url, { software_statement: 'not-a-jwt', udap: '1' })
+
+      description = expect_json_error(400, 'invalid_software_statement')
+      expect(description).to include("no identifier found in the 'iss' claim of the 'software_statement' JWT")
+    end
+
+    it 'returns a 400 invalid_software_statement JSON error when the body is a JSON array' do
+      post_json(client_registration_url, [1])
+
+      description = expect_json_error(400, 'invalid_software_statement')
+      expect(description).to include("no identifier found in the 'iss' claim of the 'software_statement' JWT")
+    end
+
+    it 'returns a 400 invalid_software_statement JSON error when the iss claim is not a string' do
+      software_statement = signed_jwt(iss: 123, sub: 123)
+      post_json(client_registration_url, { software_statement:, udap: '1' })
 
       description = expect_json_error(400, 'invalid_software_statement')
       expect(description).to include("no identifier found in the 'iss' claim of the 'software_statement' JWT")
@@ -83,21 +102,26 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer::RegistrationEndpoint, :reque
   end
 
   describe UDAPSecurityTestKit::MockUDAPServer::IntrospectionEndpoint do
-    it 'returns a 400 invalid_request JSON error for a token issued to an unknown client' do
+    # RFC 7662 section 2.2: an unrecognized token is reported as inactive, not as an error
+    def expect_inactive_token_response
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers['Content-Type']).to include('application/json')
+      expect(last_response.headers['Cache-Control']).to eq('no-store')
+      expect(last_response.headers['Access-Control-Allow-Origin']).to eq('*')
+      expect(JSON.parse(last_response.body)).to eq({ 'active' => false })
+    end
+
+    it 'returns active false for a token issued to an unknown client' do
       token = UDAPSecurityTestKit::MockUDAPServer.client_id_to_token(unknown_client_id, 5)
       post client_introspection_url, URI.encode_www_form([['token', token]]), form_content_type
 
-      description = expect_json_error(400, 'invalid_request')
-      expect(description).to include(
-        "identifier '#{unknown_client_id}', found in the 'token' parameter, is not associated with a waiting session"
-      )
+      expect_inactive_token_response
     end
 
-    it 'returns a 400 invalid_request JSON error for a token that cannot be decoded' do
+    it 'returns active false for a token that cannot be decoded' do
       post client_introspection_url, URI.encode_www_form([['token', 'garbage']]), form_content_type
 
-      description = expect_json_error(400, 'invalid_request')
-      expect(description).to include("no identifier found in the 'token' parameter")
+      expect_inactive_token_response
     end
   end
 
@@ -125,6 +149,13 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer::RegistrationEndpoint, :reque
 
     it 'returns a 401 invalid_client JSON error for a client_credentials request whose assertion is not a JWT' do
       post_token(grant_type: 'client_credentials', client_assertion: 'not-a-jwt')
+
+      description = expect_json_error(401, 'invalid_client')
+      expect(description).to include("no identifier found in the 'iss' claim of the 'client_assertion' JWT")
+    end
+
+    it 'returns a 401 invalid_client JSON error for a client_credentials request whose assertion is not a string' do
+      post_json(client_token_url, { grant_type: 'client_credentials', client_assertion: 123 })
 
       description = expect_json_error(401, 'invalid_client')
       expect(description).to include("no identifier found in the 'iss' claim of the 'client_assertion' JWT")

@@ -528,15 +528,15 @@ RSpec.describe UDAPSecurityTestKit::MockUDAPServer, :request, :runnable do # rub
     end
 
     describe 'when responding to introspection requests' do
-      it 'returns a 400 JSON error for an invalid token' do
+      it 'returns false for a token that cannot be decoded' do
         inputs = { client_id: udap_client_id }
         result = run(test, inputs)
         expect(result.result).to eq('wait')
 
         body = URI.encode_www_form([['token', 'code']])
         post introspection_url, body, 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'
-        expect(last_response.status).to eq(400)
-        expect(JSON.parse(last_response.body)['error']).to eq('invalid_request')
+        expect(last_response.status).to eq(200)
+        expect(JSON.parse(last_response.body)['active']).to be(false)
       end
 
       it 'returns false for a token never issued' do

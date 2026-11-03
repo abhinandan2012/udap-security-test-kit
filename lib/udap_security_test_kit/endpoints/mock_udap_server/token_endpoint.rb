@@ -23,8 +23,8 @@ module UDAPSecurityTestKit
 
           MockUDAPServer.issued_token_to_client_id(MockUDAPServer.refresh_token_to_authorization_code(refresh_token))
         end
-      rescue JWT::DecodeError
-        nil # a client assertion that is not a decodable JWT cannot identify a session
+      rescue StandardError
+        nil # a client assertion, code, or refresh token that cannot be read cannot identify a session
       end
 
       def test_run_identifier_location_description
